@@ -18,9 +18,17 @@ export function getMiddleConsonants(name: string): string[] {
   return inner.filter(c => c >= 'A' && c <= 'Z' && !VOWELS.has(c));
 }
 
+export function getMiddleVowels(name: string): string[] {
+  const chars = name.toUpperCase().split('');
+  if (chars.length <= 2) return [];
+  const inner = chars.slice(1, -1);
+  return inner.filter(c => VOWELS.has(c));
+}
+
 export function buildLetterPools(names: string[]) {
   const firstLetters: string[] = [];
   const middleConsonants: string[] = [];
+  const middleVowels: string[] = [];
   const usedLetters = new Set<string>();
 
   for (const name of names) {
@@ -34,12 +42,28 @@ export function buildLetterPools(names: string[]) {
 
     firstLetters.push(getFirstLetter(upper));
     middleConsonants.push(...getMiddleConsonants(upper));
+    middleVowels.push(...getMiddleVowels(upper));
   }
 
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
   const deadLetters = alphabet.filter(l => !usedLetters.has(l));
 
-  return { firstLetters, middleConsonants, deadLetters };
+  return { firstLetters, middleConsonants, middleVowels, deadLetters };
+}
+
+// Calculate letter frequency: how many names contain each letter
+export function calculateLetterFrequency(names: string[]): Map<string, number> {
+  const frequency = new Map<string, number>();
+  
+  for (const name of names) {
+    const upper = name.toUpperCase();
+    const uniqueLetters = new Set(upper.split('').filter(c => c >= 'A' && c <= 'Z'));
+    for (const letter of uniqueLetters) {
+      frequency.set(letter, (frequency.get(letter) || 0) + 1);
+    }
+  }
+  
+  return frequency;
 }
 
 export function lettersInName(name: string): Set<string> {

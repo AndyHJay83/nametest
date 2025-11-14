@@ -77,19 +77,20 @@
           // The first letter must be on screen (redundant check but safe)
           if (!lettersOnScreen.has(first)) return false;
           
-          // Count matches, but exclude the first letter from the count
-          // since the user enters "other letters" (besides the first)
-          let otherMatches = 0;
+          // Count unique other letters that match
+          // We count how many different letters (besides the first) appear both on screen and in the name
+          const matchingOtherLetters = new Set<string>();
           for (const l of lettersOnScreen) {
             // l is already uppercase from the map above
             // set contains uppercase letters from lettersInName
             if (l !== first && set.has(l)) {
-              otherMatches++;
+              matchingOtherLetters.add(l);
             }
           }
           
           // The user entered the number of "other letters" (besides first)
-          return otherMatches === n;
+          // This should be the count of unique letters, not occurrences
+          return matchingOtherLetters.size === n;
         })
         .map(c => c.name);
       

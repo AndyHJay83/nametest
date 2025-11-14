@@ -47,14 +47,16 @@
     const page = letterPages[currentPageIndex];
     if (!page) return;
 
-    const lettersOnScreen = new Set(page.letters);
+    // Ensure all letters on screen are uppercase for comparison
+    const lettersOnScreen = new Set(page.letters.map(l => l.toUpperCase()));
     
     // Find all possible first letters from names that could match
     // Check each name's first letter against letters on screen
     const possibleFirstLetters = new Set<string>();
     for (const { name } of pagesLetterSets) {
-      const firstLetter = name[0];
-      if (lettersOnScreen.has(firstLetter)) {
+      const upperName = name.toUpperCase();
+      const firstLetter = upperName[0];
+      if (firstLetter && lettersOnScreen.has(firstLetter)) {
         possibleFirstLetters.add(firstLetter);
       }
     }
@@ -65,10 +67,11 @@
     for (const first of possibleFirstLetters) {
       const candidates = pagesLetterSets
         .filter(({ name, set }) => {
+          const upperName = name.toUpperCase();
           // Name must start with this first letter
-          if (!name.startsWith(first)) return false;
+          if (!upperName.startsWith(first)) return false;
           
-          // The first letter must be on screen
+          // The first letter must be on screen (redundant check but safe)
           if (!lettersOnScreen.has(first)) return false;
           
           // Count matches, but exclude the first letter from the count
@@ -100,7 +103,7 @@
 <div class="screen">
   <header>
     <button on:click={reset}>R</button>
-    <div class="title">Letters</div>
+    <div class="title">Letters ({namestop1.length})</div>
     <button on:click={openModal}>#</button>
   </header>
   <div class="scroll" bind:this={container} on:scroll={onScroll}>

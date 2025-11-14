@@ -16,6 +16,18 @@
   let pagesLetterSets: { name: string; set: Set<string> }[] = [];
   let currentPage: LetterPage | null = null;
 
+  function addDigit(digit: string) {
+    extraMatches = extraMatches + digit;
+  }
+
+  function clearDigit() {
+    extraMatches = extraMatches.slice(0, -1);
+  }
+
+  function clearAll() {
+    extraMatches = '';
+  }
+
   onMount(() => {
     pagesLetterSets = namestop1.map(name => ({
       name,
@@ -137,13 +149,31 @@
       <div class="modal" on:click|stopPropagation>
         <label>
           Other letters in your name:
-          <input
-            type="number"
-            bind:value={extraMatches}
-            min="0"
-          />
         </label>
-        <button on:click={submitCount}>SUBMIT</button>
+        <div class="numpad-display">{extraMatches || '0'}</div>
+        <div class="numpad">
+          <div class="numpad-row">
+            <button class="numpad-btn" on:click={() => addDigit('1')}>1</button>
+            <button class="numpad-btn" on:click={() => addDigit('2')}>2</button>
+            <button class="numpad-btn" on:click={() => addDigit('3')}>3</button>
+          </div>
+          <div class="numpad-row">
+            <button class="numpad-btn" on:click={() => addDigit('4')}>4</button>
+            <button class="numpad-btn" on:click={() => addDigit('5')}>5</button>
+            <button class="numpad-btn" on:click={() => addDigit('6')}>6</button>
+          </div>
+          <div class="numpad-row">
+            <button class="numpad-btn" on:click={() => addDigit('7')}>7</button>
+            <button class="numpad-btn" on:click={() => addDigit('8')}>8</button>
+            <button class="numpad-btn" on:click={() => addDigit('9')}>9</button>
+          </div>
+          <div class="numpad-row">
+            <button class="numpad-btn clear-btn" on:click={clearAll}>C</button>
+            <button class="numpad-btn" on:click={() => addDigit('0')}>0</button>
+            <button class="numpad-btn backspace-btn" on:click={clearDigit}>⌫</button>
+          </div>
+        </div>
+        <button class="submit-btn" on:click={submitCount}>SUBMIT</button>
         {#if modalResults.length}
           <h2>Possible names ({modalResults.length})</h2>
           <ul>
@@ -225,15 +255,71 @@
     max-width: 360px;
   }
 
-  input {
+  .numpad-display {
     width: 100%;
-    margin-top: 4px;
-    margin-bottom: 8px;
-    padding: 4px 6px;
+    margin: 8px 0;
+    padding: 12px;
+    font-size: 2rem;
+    text-align: center;
+    background: #f5f5f5;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-weight: 600;
   }
 
-  button {
-    margin-top: 4px;
+  .numpad {
+    display: grid;
+    grid-template-rows: repeat(4, 1fr);
+    gap: 8px;
+    margin: 12px 0;
+  }
+
+  .numpad-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .numpad-btn {
+    padding: 16px;
+    font-size: 1.5rem;
+    border: 2px solid #ddd;
+    background: white;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s;
+  }
+
+  .numpad-btn:active {
+    background: #e0e0e0;
+  }
+
+  .clear-btn {
+    background: #ffebee;
+    color: #c62828;
+  }
+
+  .backspace-btn {
+    background: #fff3e0;
+    color: #e65100;
+  }
+
+  .submit-btn {
+    width: 100%;
+    margin-top: 8px;
+    padding: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    background: #1976d2;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .submit-btn:active {
+    background: #1565c0;
   }
 </style>
 

@@ -184,16 +184,11 @@
         {:else if extraMatches !== ''}
           <p>No matches found.</p>
         {/if}
-        <div style="margin-top: 12px; font-size: 0.8rem; color: #666;">
-          Debug: {namestop1.length} names captured
-          {#if namestop1.length > 0}
-            <br />First few: {namestop1.slice(0, 5).join(', ')}
-            <br />Names starting with F: {namestop1.filter(n => n.toUpperCase().startsWith('F')).slice(0, 10).join(', ')}
-          {/if}
-          {#if currentPage}
-            <br />Screen letters: {currentPage.letters.join(', ')}
-          {/if}
-        </div>
+        {#if currentPage}
+          <div style="margin-top: 12px; font-size: 0.8rem; color: #666;">
+            Screen letters: {currentPage.letters.join(', ')}
+          </div>
+        {/if}
       </div>
     </div>
   {/if}

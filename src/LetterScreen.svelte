@@ -69,8 +69,9 @@
     const page = letterPages[currentPageIndex];
     if (!page) return;
 
-    // Ensure all letters on screen are uppercase for comparison
-    const lettersOnScreen = new Set(page.letters.map(l => l.toUpperCase().trim()).filter(Boolean));
+    // Keep original array for occurrence counting, and Set for unique counting
+    const lettersOnScreenArray = page.letters.map(l => l.toUpperCase().trim()).filter(Boolean);
+    const lettersOnScreen = new Set(lettersOnScreenArray);
     
     // Find all possible first letters from names that could match
     // Check each name's first letter against letters on screen
@@ -100,20 +101,22 @@
           if (!lettersOnScreen.has(first)) return false;
           
           // Count unique other letters that match
-          // We count how many different letters (besides the first) appear both on screen and in the name
           const matchingOtherLetters = new Set<string>();
-          for (const l of lettersOnScreen) {
-            // l is already uppercase from the map above
-            // set contains uppercase letters from lettersInName
+          // Count total occurrences of matching letters
+          let occurrenceCount = 0;
+          
+          for (const l of lettersOnScreenArray) {
             const upperL = l.toUpperCase().trim();
             if (upperL && upperL !== first && set.has(upperL)) {
               matchingOtherLetters.add(upperL);
+              occurrenceCount++;
             }
           }
           
-          // The user entered the number of "other letters" (besides first)
-          // This should be the count of unique letters, not occurrences
-          return matchingOtherLetters.size === n;
+          const uniqueCount = matchingOtherLetters.size;
+          
+          // Match if user entered either unique count OR occurrence count
+          return uniqueCount === n || occurrenceCount === n;
         })
         .map(c => c.name);
       

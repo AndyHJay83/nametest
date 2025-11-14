@@ -49,7 +49,7 @@
     buildPages();
     idleTimer = window.setInterval(() => {
       const now = Date.now();
-      if (!captured && now - lastScrollTime > 5000) {
+      if (!captured && now - lastScrollTime > 10000) {
         captured = true;
         captureVisiblePage();
       }

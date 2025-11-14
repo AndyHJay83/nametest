@@ -48,34 +48,48 @@
     if (!page) return;
 
     const lettersOnScreen = new Set(page.letters);
-    const first = page.firstLetter;
-
-    // First, ensure the first letter is actually on screen
-    if (!lettersOnScreen.has(first)) {
-      modalResults = [];
-      return;
+    
+    // Find all possible first letters from names that could match
+    // Check each name's first letter against letters on screen
+    const possibleFirstLetters = new Set<string>();
+    for (const { name } of pagesLetterSets) {
+      const firstLetter = name[0];
+      if (lettersOnScreen.has(firstLetter)) {
+        possibleFirstLetters.add(firstLetter);
+      }
     }
 
-    const candidates = pagesLetterSets
-      .filter(({ name, set }) => {
-        if (!name.startsWith(first)) return false;
-        
-        // Count matches, but exclude the first letter from the count
-        // since the user enters "other letters" (besides the first)
-        let otherMatches = 0;
-        for (const l of lettersOnScreen) {
-          if (l !== first && set.has(l)) {
-            otherMatches++;
+    // Try each possible first letter and collect all matching names
+    const allCandidates: string[] = [];
+    
+    for (const first of possibleFirstLetters) {
+      const candidates = pagesLetterSets
+        .filter(({ name, set }) => {
+          // Name must start with this first letter
+          if (!name.startsWith(first)) return false;
+          
+          // The first letter must be on screen
+          if (!lettersOnScreen.has(first)) return false;
+          
+          // Count matches, but exclude the first letter from the count
+          // since the user enters "other letters" (besides the first)
+          let otherMatches = 0;
+          for (const l of lettersOnScreen) {
+            if (l !== first && set.has(l)) {
+              otherMatches++;
+            }
           }
-        }
-        
-        // The user entered the number of "other letters" (besides first)
-        return otherMatches === n;
-      })
-      .map(c => c.name)
-      .sort((a, b) => a.localeCompare(b));
+          
+          // The user entered the number of "other letters" (besides first)
+          return otherMatches === n;
+        })
+        .map(c => c.name);
+      
+      allCandidates.push(...candidates);
+    }
 
-    modalResults = candidates;
+    // Remove duplicates and sort
+    modalResults = [...new Set(allCandidates)].sort((a, b) => a.localeCompare(b));
   }
 
   function reset() {

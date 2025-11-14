@@ -48,7 +48,7 @@
     if (!page) return;
 
     // Ensure all letters on screen are uppercase for comparison
-    const lettersOnScreen = new Set(page.letters.map(l => l.toUpperCase()));
+    const lettersOnScreen = new Set(page.letters.map(l => l.toUpperCase().trim()).filter(Boolean));
     
     // Find all possible first letters from names that could match
     // Check each name's first letter against letters on screen

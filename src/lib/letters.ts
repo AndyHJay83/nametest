@@ -14,12 +14,23 @@ export function buildLetterPages(
   const { firstLetters, middleConsonants, deadLetters } = buildLetterPools(names);
 
   const pages: LetterPage[] = [];
+  
+  // Ensure all unique first letters appear at least once
+  const uniqueFirstLetters = [...new Set(firstLetters)];
+  const usedFirstLetters = new Set<string>();
 
   for (let i = 0; i < pageCount; i++) {
-    // basic fallbacks if pools are oddly small
-    const first = firstLetters.length
-      ? pickOne(rng, firstLetters)
-      : 'A';
+    // For the first few pages, prioritize unused first letters
+    let first: string;
+    if (i < uniqueFirstLetters.length && !usedFirstLetters.has(uniqueFirstLetters[i])) {
+      first = uniqueFirstLetters[i];
+      usedFirstLetters.add(first);
+    } else {
+      // After covering unique first letters, pick randomly
+      first = firstLetters.length
+        ? pickOne(rng, firstLetters)
+        : 'A';
+    }
 
     const dead = deadLetters.length
       ? pickOne(rng, deadLetters)

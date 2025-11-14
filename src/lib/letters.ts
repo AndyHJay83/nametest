@@ -32,12 +32,17 @@ export function buildLetterPages(
         : 'A';
     }
 
-    const dead = deadLetters.length
-      ? pickOne(rng, deadLetters)
-      : 'Z';
+    const deads: string[] = [];
+    for (let j = 0; j < 2; j++) {
+      if (deadLetters.length) {
+        deads.push(pickOne(rng, deadLetters));
+      } else {
+        deads.push('Z');
+      }
+    }
 
     const mids: string[] = [];
-    for (let j = 0; j < 4; j++) {
+    for (let j = 0; j < 3; j++) {
       if (middleConsonants.length) {
         mids.push(pickOne(rng, middleConsonants));
       } else {
@@ -46,7 +51,7 @@ export function buildLetterPages(
       }
     }
 
-    const letters = shuffle(rng, [first, dead, ...mids]);
+    const letters = shuffle(rng, [first, ...deads, ...mids]);
 
     pages.push({ letters, firstLetter: first });
   }

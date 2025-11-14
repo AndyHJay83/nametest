@@ -174,7 +174,7 @@ export function buildLetterPages(
       selectedDead.push(pickOne(rng, deadLetters));
     }
 
-    // Combine letters: We need exactly 6 total
+    // Combine letters: We need exactly 6 total, all unique
     // Strategy 2: 1+3 distribution (2 first + 1 mid1 + 3 mid2 = 6)
     // But we also want vowels and dead letters sometimes
     // So we'll do: 2 first + 1 mid1 + 3 mid2 = 6 (primary)
@@ -182,18 +182,110 @@ export function buildLetterPages(
     // Or sometimes: 2 first + 1 mid1 + 2 mid2 + 1 dead = 6 (if dead available)
     
     let finalLetters: string[] = [];
+    const usedLetters = new Set<string>();
+    
+    // Helper to add letter only if unique
+    function addUniqueLetter(letter: string): boolean {
+      if (!usedLetters.has(letter)) {
+        usedLetters.add(letter);
+        finalLetters.push(letter);
+        return true;
+      }
+      return false;
+    }
     
     // 30% chance to include vowel, 20% chance for dead letter, 50% for pure 1+3
     const choice = rng();
     if (choice < 0.3 && selectedVowel.length > 0) {
       // Include vowel: 2 first + 1 mid1 + 2 mid2 + 1 vowel = 6
-      finalLetters = [first1, first2, ...selectedMids1, ...selectedMids2.slice(0, 2), ...selectedVowel.slice(0, 1)];
+      addUniqueLetter(first1);
+      addUniqueLetter(first2);
+      for (const mid of selectedMids1) {
+        if (!addUniqueLetter(mid) && finalLetters.length < 6) {
+          // If duplicate, try to find alternative from first1
+          const alternatives = midsFromFirst1.filter(m => !usedLetters.has(m));
+          if (alternatives.length > 0) {
+            addUniqueLetter(pickRareLetter(rng, alternatives, letterFrequency));
+          }
+        }
+      }
+      for (const mid of selectedMids2.slice(0, 2)) {
+        if (!addUniqueLetter(mid) && finalLetters.length < 6) {
+          // If duplicate, try to find alternative from first2
+          const alternatives = midsFromFirst2.filter(m => !usedLetters.has(m));
+          if (alternatives.length > 0) {
+            addUniqueLetter(pickRareLetter(rng, alternatives, letterFrequency));
+          }
+        }
+      }
+      if (finalLetters.length < 6 && selectedVowel.length > 0) {
+        addUniqueLetter(selectedVowel[0]);
+      }
     } else if (choice < 0.5 && selectedDead.length > 0) {
       // Include dead: 2 first + 1 mid1 + 2 mid2 + 1 dead = 6
-      finalLetters = [first1, first2, ...selectedMids1, ...selectedMids2.slice(0, 2), ...selectedDead.slice(0, 1)];
+      addUniqueLetter(first1);
+      addUniqueLetter(first2);
+      for (const mid of selectedMids1) {
+        if (!addUniqueLetter(mid) && finalLetters.length < 6) {
+          const alternatives = midsFromFirst1.filter(m => !usedLetters.has(m));
+          if (alternatives.length > 0) {
+            addUniqueLetter(pickRareLetter(rng, alternatives, letterFrequency));
+          }
+        }
+      }
+      for (const mid of selectedMids2.slice(0, 2)) {
+        if (!addUniqueLetter(mid) && finalLetters.length < 6) {
+          const alternatives = midsFromFirst2.filter(m => !usedLetters.has(m));
+          if (alternatives.length > 0) {
+            addUniqueLetter(pickRareLetter(rng, alternatives, letterFrequency));
+          }
+        }
+      }
+      if (finalLetters.length < 6 && selectedDead.length > 0) {
+        addUniqueLetter(selectedDead[0]);
+      }
     } else {
       // Pure 1+3: 2 first + 1 mid1 + 3 mid2 = 6
-      finalLetters = [first1, first2, ...selectedMids1, ...selectedMids2];
+      addUniqueLetter(first1);
+      addUniqueLetter(first2);
+      for (const mid of selectedMids1) {
+        if (!addUniqueLetter(mid) && finalLetters.length < 6) {
+          const alternatives = midsFromFirst1.filter(m => !usedLetters.has(m));
+          if (alternatives.length > 0) {
+            addUniqueLetter(pickRareLetter(rng, alternatives, letterFrequency));
+          }
+        }
+      }
+      for (const mid of selectedMids2) {
+        if (!addUniqueLetter(mid) && finalLetters.length < 6) {
+          const alternatives = midsFromFirst2.filter(m => !usedLetters.has(m));
+          if (alternatives.length > 0) {
+            addUniqueLetter(pickRareLetter(rng, alternatives, letterFrequency));
+          }
+        }
+      }
+    }
+    
+    // Fill remaining slots if we don't have 6 unique letters yet
+    while (finalLetters.length < 6) {
+      // Try to get more from first2, then first1, then general pool
+      const allAvailable = [
+        ...midsFromFirst2.filter(m => !usedLetters.has(m)),
+        ...midsFromFirst1.filter(m => !usedLetters.has(m)),
+        ...middleConsonants.filter(m => !usedLetters.has(m))
+      ];
+      if (allAvailable.length > 0) {
+        addUniqueLetter(pickRareLetter(rng, allAvailable, letterFrequency));
+      } else {
+        // Last resort: use any available letter
+        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+        const remaining = alphabet.filter(l => !usedLetters.has(l));
+        if (remaining.length > 0) {
+          addUniqueLetter(pickOne(rng, remaining));
+        } else {
+          break; // Can't add more unique letters
+        }
+      }
     }
     
     const letters = shuffle(rng, finalLetters);

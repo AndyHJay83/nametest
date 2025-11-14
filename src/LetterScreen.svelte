@@ -54,7 +54,8 @@
     // Check each name's first letter against letters on screen
     const possibleFirstLetters = new Set<string>();
     for (const { name } of pagesLetterSets) {
-      const upperName = name.toUpperCase();
+      const upperName = name.toUpperCase().trim();
+      if (!upperName) continue;
       const firstLetter = upperName[0];
       if (firstLetter && lettersOnScreen.has(firstLetter)) {
         possibleFirstLetters.add(firstLetter);
@@ -67,7 +68,9 @@
     for (const first of possibleFirstLetters) {
       const candidates = pagesLetterSets
         .filter(({ name, set }) => {
-          const upperName = name.toUpperCase();
+          const upperName = name.toUpperCase().trim();
+          if (!upperName) return false;
+          
           // Name must start with this first letter
           if (!upperName.startsWith(first)) return false;
           
@@ -78,6 +81,8 @@
           // since the user enters "other letters" (besides the first)
           let otherMatches = 0;
           for (const l of lettersOnScreen) {
+            // l is already uppercase from the map above
+            // set contains uppercase letters from lettersInName
             if (l !== first && set.has(l)) {
               otherMatches++;
             }
@@ -128,7 +133,7 @@
         </label>
         <button on:click={submitCount}>SUBMIT</button>
         {#if modalResults.length}
-          <h2>Possible names</h2>
+          <h2>Possible names ({modalResults.length})</h2>
           <ul>
             {#each modalResults as n}
               <li>{n}</li>
@@ -137,6 +142,9 @@
         {:else if extraMatches !== ''}
           <p>No matches found.</p>
         {/if}
+        <div style="margin-top: 12px; font-size: 0.8rem; color: #666;">
+          Debug: {namestop1.length} names captured
+        </div>
       </div>
     </div>
   {/if}

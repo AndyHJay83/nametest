@@ -1,5 +1,5 @@
 import { pickOne, shuffle } from './random';
-import { buildLetterPools } from './names';
+import { buildLetterPools, getMiddleConsonants } from './names';
 
 export type LetterPage = {
   letters: string[];        // length 6
@@ -20,40 +20,71 @@ export function buildLetterPages(
   const usedFirstLetters = new Set<string>();
 
   for (let i = 0; i < pageCount; i++) {
-    // For the first few pages, prioritize unused first letters
-    let first: string;
+    // Pick 2 different first letters
+    let first1: string;
+    let first2: string;
+    
     if (i < uniqueFirstLetters.length && !usedFirstLetters.has(uniqueFirstLetters[i])) {
-      first = uniqueFirstLetters[i];
-      usedFirstLetters.add(first);
+      first1 = uniqueFirstLetters[i];
+      usedFirstLetters.add(first1);
+      // Pick a different second first letter
+      const remaining = uniqueFirstLetters.filter(fl => fl !== first1);
+      first2 = remaining.length > 0 
+        ? pickOne(rng, remaining)
+        : (firstLetters.length > 1 ? pickOne(rng, firstLetters.filter(fl => fl !== first1)) : 'B');
     } else {
-      // After covering unique first letters, pick randomly
-      first = firstLetters.length
-        ? pickOne(rng, firstLetters)
-        : 'A';
+      // Pick 2 different first letters randomly
+      if (firstLetters.length >= 2) {
+        const shuffled = shuffle(rng, [...firstLetters]);
+        first1 = shuffled[0];
+        first2 = shuffled[1];
+      } else if (firstLetters.length === 1) {
+        first1 = firstLetters[0];
+        first2 = 'A';
+      } else {
+        first1 = 'A';
+        first2 = 'B';
+      }
     }
 
-    const deads: string[] = [];
+    // Get middle consonants from names starting with first1
+    const namesWithFirst1 = names.filter(n => n.toUpperCase().startsWith(first1));
+    const midsFromFirst1: string[] = [];
+    for (const name of namesWithFirst1) {
+      midsFromFirst1.push(...getMiddleConsonants(name));
+    }
+    
+    // Get middle consonants from names starting with first2
+    const namesWithFirst2 = names.filter(n => n.toUpperCase().startsWith(first2));
+    const midsFromFirst2: string[] = [];
+    for (const name of namesWithFirst2) {
+      midsFromFirst2.push(...getMiddleConsonants(name));
+    }
+
+    // Pick 2 middle consonants from each group
+    const selectedMids1: string[] = [];
+    const selectedMids2: string[] = [];
+    
     for (let j = 0; j < 2; j++) {
-      if (deadLetters.length) {
-        deads.push(pickOne(rng, deadLetters));
+      if (midsFromFirst1.length > 0) {
+        selectedMids1.push(pickOne(rng, midsFromFirst1));
       } else {
-        deads.push('Z');
+        // Fallback to general middle consonants or first letters
+        selectedMids1.push(middleConsonants.length ? pickOne(rng, middleConsonants) : pickOne(rng, firstLetters));
+      }
+      
+      if (midsFromFirst2.length > 0) {
+        selectedMids2.push(pickOne(rng, midsFromFirst2));
+      } else {
+        // Fallback to general middle consonants or first letters
+        selectedMids2.push(middleConsonants.length ? pickOne(rng, middleConsonants) : pickOne(rng, firstLetters));
       }
     }
 
-    const mids: string[] = [];
-    for (let j = 0; j < 3; j++) {
-      if (middleConsonants.length) {
-        mids.push(pickOne(rng, middleConsonants));
-      } else {
-        // if no middle consonants (edge case), reuse first letters
-        mids.push(pickOne(rng, firstLetters.length ? firstLetters : ['B']));
-      }
-    }
+    const letters = shuffle(rng, [first1, first2, ...selectedMids1, ...selectedMids2]);
 
-    const letters = shuffle(rng, [first, ...deads, ...mids]);
-
-    pages.push({ letters, firstLetter: first });
+    // Store first1 as the primary first letter for backwards compatibility
+    pages.push({ letters, firstLetter: first1 });
   }
 
   return pages;

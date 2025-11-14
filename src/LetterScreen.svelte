@@ -50,14 +50,27 @@
     const lettersOnScreen = new Set(page.letters);
     const first = page.firstLetter;
 
+    // First, ensure the first letter is actually on screen
+    if (!lettersOnScreen.has(first)) {
+      modalResults = [];
+      return;
+    }
+
     const candidates = pagesLetterSets
       .filter(({ name, set }) => {
         if (!name.startsWith(first)) return false;
-        let matches = 0;
+        
+        // Count matches, but exclude the first letter from the count
+        // since the user enters "other letters" (besides the first)
+        let otherMatches = 0;
         for (const l of lettersOnScreen) {
-          if (set.has(l)) matches++;
+          if (l !== first && set.has(l)) {
+            otherMatches++;
+          }
         }
-        return matches === 1 + n; // first letter + extra
+        
+        // The user entered the number of "other letters" (besides first)
+        return otherMatches === n;
       })
       .map(c => c.name)
       .sort((a, b) => a.localeCompare(b));

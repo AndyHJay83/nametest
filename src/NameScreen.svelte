@@ -16,7 +16,7 @@
   const rng = createRng(123456); // you can mix this with a session seed if you like
 
   function randomBox(): Box {
-    const count = 1 + Math.floor(rng() * 15);
+    const count = 1 + Math.floor(rng() * 10);
     const chosen: string[] = [];
     for (let i = 0; i < count; i++) {
       chosen.push(pickOne(rng, allNames));
@@ -131,7 +131,7 @@
   .box {
     border: 1px solid #eee;
     padding: 6px;
-    font-size: 0.8rem;
+    font-size: 1.1rem;
     overflow-y: auto;
   }
 

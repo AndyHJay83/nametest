@@ -261,9 +261,8 @@
     padding: 12px;
     font-size: 2rem;
     text-align: center;
-    background: #f5f5f5;
-    border: 2px solid #ddd;
-    border-radius: 8px;
+    background: transparent;
+    border: none;
     font-weight: 600;
   }
 

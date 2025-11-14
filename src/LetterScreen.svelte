@@ -14,6 +14,7 @@
   let extraMatches = '';
   let currentPageIndex = 0;
   let pagesLetterSets: { name: string; set: Set<string> }[] = [];
+  let currentPage: LetterPage | null = null;
 
   onMount(() => {
     pagesLetterSets = namestop1.map(name => ({
@@ -28,10 +29,19 @@
     const scrollTop = container.scrollTop;
     currentPageIndex = Math.round(scrollTop / viewportHeight);
     currentPageIndex = Math.max(0, Math.min(currentPageIndex, letterPages.length - 1));
+    currentPage = letterPages[currentPageIndex] || null;
   }
 
   function openModal() {
     modalOpen = true;
+    // Update current page when modal opens
+    if (container) {
+      const viewportHeight = container.clientHeight;
+      const scrollTop = container.scrollTop;
+      currentPageIndex = Math.round(scrollTop / viewportHeight);
+      currentPageIndex = Math.max(0, Math.min(currentPageIndex, letterPages.length - 1));
+      currentPage = letterPages[currentPageIndex] || null;
+    }
   }
 
   function closeModal() {
@@ -148,6 +158,10 @@
           Debug: {namestop1.length} names captured
           {#if namestop1.length > 0}
             <br />First few: {namestop1.slice(0, 5).join(', ')}
+            <br />Names starting with F: {namestop1.filter(n => n.toUpperCase().startsWith('F')).slice(0, 10).join(', ')}
+          {/if}
+          {#if currentPage}
+            <br />Screen letters: {currentPage.letters.join(', ')}
           {/if}
         </div>
       </div>

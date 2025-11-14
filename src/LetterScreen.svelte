@@ -83,8 +83,9 @@
           for (const l of lettersOnScreen) {
             // l is already uppercase from the map above
             // set contains uppercase letters from lettersInName
-            if (l !== first && set.has(l)) {
-              matchingOtherLetters.add(l);
+            const upperL = l.toUpperCase().trim();
+            if (upperL && upperL !== first && set.has(upperL)) {
+              matchingOtherLetters.add(upperL);
             }
           }
           
@@ -145,6 +146,9 @@
         {/if}
         <div style="margin-top: 12px; font-size: 0.8rem; color: #666;">
           Debug: {namestop1.length} names captured
+          {#if namestop1.length > 0}
+            <br />First few: {namestop1.slice(0, 5).join(', ')}
+          {/if}
         </div>
       </div>
     </div>

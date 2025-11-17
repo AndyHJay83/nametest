@@ -10,23 +10,16 @@
 
   let container: HTMLDivElement;
   let modalOpen = false;
-  let modalResults: string[] = [];
-  let extraMatches = '';
+  let filteredResults: string[] = [];
+  let positionInput = '1';
+  let letterString = '';
+  let matchCountInput = '';
+  let formError = '';
+  let submitted = false;
   let currentPageIndex = 0;
   let pagesLetterSets: { name: string; set: Set<string> }[] = [];
   let currentPage: LetterPage | null = null;
-
-  function addDigit(digit: string) {
-    extraMatches = extraMatches + digit;
-  }
-
-  function clearDigit() {
-    extraMatches = extraMatches.slice(0, -1);
-  }
-
-  function clearAll() {
-    extraMatches = '';
-  }
+  let lastGeneratedLetters = '';
 
   onMount(() => {
     pagesLetterSets = namestop1.map(name => ({
@@ -35,7 +28,7 @@
     }));
   });
 
-  function onScroll() {
+  function updateCurrentPageFromScroll() {
     if (!container) return;
     const viewportHeight = container.clientHeight;
     const scrollTop = container.scrollTop;
@@ -44,87 +37,122 @@
     currentPage = letterPages[currentPageIndex] || null;
   }
 
+  function onScroll() {
+    updateCurrentPageFromScroll();
+  }
+
   function openModal() {
+    updateCurrentPageFromScroll();
     modalOpen = true;
-    // Update current page when modal opens
-    if (container) {
-      const viewportHeight = container.clientHeight;
-      const scrollTop = container.scrollTop;
-      currentPageIndex = Math.round(scrollTop / viewportHeight);
-      currentPageIndex = Math.max(0, Math.min(currentPageIndex, letterPages.length - 1));
-      currentPage = letterPages[currentPageIndex] || null;
+    formError = '';
+    submitted = false;
+    filteredResults = [];
+    if (currentPage) {
+      letterString = currentPage.letters.join('');
+    } else if (lastGeneratedLetters) {
+      letterString = lastGeneratedLetters;
     }
   }
 
   function closeModal() {
     modalOpen = false;
-    extraMatches = '';
-    modalResults = [];
+    filteredResults = [];
+    positionInput = '1';
+    matchCountInput = '';
+    formError = '';
+    submitted = false;
   }
 
-  function submitCount() {
-    const n = parseInt(extraMatches, 10);
-    if (isNaN(n)) return;
+  function parseLetters(value: string): string[] {
+    return value
+      .toUpperCase()
+      .split('')
+      .map(c => c.trim())
+      .filter(c => c >= 'A' && c <= 'Z');
+  }
 
-    const page = letterPages[currentPageIndex];
-    if (!page) return;
+  function handleSubmit() {
+    formError = '';
+    filteredResults = [];
+    submitted = false;
 
-    // Keep original array for occurrence counting, and Set for unique counting
-    const lettersOnScreenArray = page.letters.map(l => l.toUpperCase().trim()).filter(Boolean);
-    const lettersOnScreen = new Set(lettersOnScreenArray);
-    
-    // Find all possible first letters from names that could match
-    // Check each name's first letter against letters on screen
-    const possibleFirstLetters = new Set<string>();
-    for (const { name } of pagesLetterSets) {
+    const position = parseInt(positionInput, 10);
+    if (isNaN(position) || position < 1 || position > 6) {
+      formError = 'Position must be between 1 and 6.';
+      return;
+    }
+
+    const lettersArray = parseLetters(letterString);
+    if (!lettersArray.length) {
+      formError = 'Enter at least one valid letter.';
+      return;
+    }
+
+    const matchCount = parseInt(matchCountInput, 10);
+    if (isNaN(matchCount) || matchCount < 0) {
+      formError = 'Enter a valid match count.';
+      return;
+    }
+
+    submitted = true;
+
+    const lettersSet = new Set(lettersArray);
+    const results = new Set<string>();
+
+    for (const { name, set } of pagesLetterSets) {
       const upperName = name.toUpperCase().trim();
-      if (!upperName) continue;
-      const firstLetter = upperName[0];
-      if (firstLetter && lettersOnScreen.has(firstLetter)) {
-        possibleFirstLetters.add(firstLetter);
+      if (!upperName || upperName.length < position) continue;
+
+      const targetLetter = upperName[position - 1];
+      if (!lettersSet.has(targetLetter)) continue;
+
+      const matchingOtherLetters = new Set<string>();
+      let occurrenceCount = 0;
+
+      for (const letter of lettersArray) {
+        if (letter === targetLetter) continue;
+        if (set.has(letter)) {
+          matchingOtherLetters.add(letter);
+          occurrenceCount++;
+        }
+      }
+
+      if (matchingOtherLetters.size === matchCount || occurrenceCount === matchCount) {
+        results.add(name);
       }
     }
 
-    // Try each possible first letter and collect all matching names
-    const allCandidates: string[] = [];
-    
-    for (const first of possibleFirstLetters) {
-      const candidates = pagesLetterSets
-        .filter(({ name, set }) => {
-          const upperName = name.toUpperCase().trim();
-          if (!upperName) return false;
-          
-          // Name must start with this first letter
-          if (!upperName.startsWith(first)) return false;
-          
-          // The first letter must be on screen (redundant check but safe)
-          if (!lettersOnScreen.has(first)) return false;
-          
-          // Count unique other letters that match
-          const matchingOtherLetters = new Set<string>();
-          // Count total occurrences of matching letters
-          let occurrenceCount = 0;
-          
-          for (const l of lettersOnScreenArray) {
-            const upperL = l.toUpperCase().trim();
-            if (upperL && upperL !== first && set.has(upperL)) {
-              matchingOtherLetters.add(upperL);
-              occurrenceCount++;
-            }
-          }
-          
-          const uniqueCount = matchingOtherLetters.size;
-          
-          // Match if user entered either unique count OR occurrence count
-          return uniqueCount === n || occurrenceCount === n;
-        })
-        .map(c => c.name);
-      
-      allCandidates.push(...candidates);
-    }
+    filteredResults = [...results].sort((a, b) => a.localeCompare(b));
+  }
 
-    // Remove duplicates and sort
-    modalResults = [...new Set(allCandidates)].sort((a, b) => a.localeCompare(b));
+  function generateLetterString() {
+    if (!letterPages.length) {
+      return;
+    }
+    const randomIndex = Math.floor(Math.random() * letterPages.length);
+    const page = letterPages[randomIndex];
+    if (!page) return;
+    lastGeneratedLetters = page.letters.join('');
+    letterString = lastGeneratedLetters;
+  }
+
+  function useCurrentLetters() {
+    if (currentPage) {
+      letterString = currentPage.letters.join('');
+    }
+  }
+
+  function handleOverlayKey(event: KeyboardEvent) {
+    if (event.key === 'Escape' || event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      closeModal();
+    }
+  }
+
+  function handleOverlayClick(event: MouseEvent) {
+    if (event.target === event.currentTarget) {
+      closeModal();
+    }
   }
 
   function reset() {
@@ -136,7 +164,7 @@
   <header>
     <button on:click={reset}>R</button>
     <div class="title">Letters ({namestop1.length})</div>
-    <button on:click={openModal}>#</button>
+    <button on:click={openModal}>Filter</button>
   </header>
   <div class="scroll" bind:this={container} on:scroll={onScroll}>
     {#each letterPages as page}
@@ -148,47 +176,70 @@
     {/each}
   </div>
   {#if modalOpen}
-    <div class="overlay" on:click={closeModal}>
-      <div class="modal" on:click|stopPropagation>
-        <label>
-          Other letters in your name:
-        </label>
-        <div class="numpad-display">{extraMatches || '0'}</div>
-        <div class="numpad">
-          <div class="numpad-row">
-            <button class="numpad-btn" on:click={() => addDigit('1')}>1</button>
-            <button class="numpad-btn" on:click={() => addDigit('2')}>2</button>
-            <button class="numpad-btn" on:click={() => addDigit('3')}>3</button>
+    <div
+      class="overlay"
+      role="button"
+      tabindex="0"
+      aria-label="Close filter"
+      on:click={handleOverlayClick}
+      on:keydown={handleOverlayKey}
+    >
+      <div class="modal" role="dialog" aria-modal="true">
+        <h2>Filter names</h2>
+        <div class="field">
+          <label for="position-input">Position (1-6)</label>
+          <input
+            id="position-input"
+            type="number"
+            min="1"
+            max="6"
+            bind:value={positionInput}
+          />
+        </div>
+        <div class="field">
+          <label for="letters-input">Letters</label>
+          <div class="letter-input-row">
+            <input
+              id="letters-input"
+              type="text"
+              placeholder="e.g. ABCDEF"
+              bind:value={letterString}
+            />
           </div>
-          <div class="numpad-row">
-            <button class="numpad-btn" on:click={() => addDigit('4')}>4</button>
-            <button class="numpad-btn" on:click={() => addDigit('5')}>5</button>
-            <button class="numpad-btn" on:click={() => addDigit('6')}>6</button>
-          </div>
-          <div class="numpad-row">
-            <button class="numpad-btn" on:click={() => addDigit('7')}>7</button>
-            <button class="numpad-btn" on:click={() => addDigit('8')}>8</button>
-            <button class="numpad-btn" on:click={() => addDigit('9')}>9</button>
-          </div>
-          <div class="numpad-row">
-            <button class="numpad-btn clear-btn" on:click={clearAll}>C</button>
-            <button class="numpad-btn" on:click={() => addDigit('0')}>0</button>
-            <button class="numpad-btn backspace-btn" on:click={clearDigit}>⌫</button>
+          <div class="actions-row">
+            <button class="action-btn" type="button" on:click={useCurrentLetters} disabled={!currentPage}>
+              Use screen
+            </button>
+            <button class="action-btn" type="button" on:click={generateLetterString}>
+              Generate
+            </button>
           </div>
         </div>
-        <button class="submit-btn" on:click={submitCount}>SUBMIT</button>
-        {#if modalResults.length}
-          <h2>Possible names ({modalResults.length})</h2>
+        <div class="field">
+          <label for="matches-input">Matching letters in word</label>
+          <input
+            id="matches-input"
+            type="number"
+            min="0"
+            bind:value={matchCountInput}
+          />
+        </div>
+        <button class="submit-btn" on:click={handleSubmit}>SUBMIT</button>
+        {#if formError}
+          <p class="error">{formError}</p>
+        {/if}
+        {#if filteredResults.length}
+          <h3>Possible names ({filteredResults.length})</h3>
           <ul>
-            {#each modalResults as n}
+            {#each filteredResults as n}
               <li>{n}</li>
             {/each}
           </ul>
-        {:else if extraMatches !== ''}
+        {:else if submitted}
           <p>No matches found.</p>
         {/if}
         {#if currentPage}
-          <div style="margin-top: 12px; font-size: 0.8rem; color: #666;">
+          <div class="hint">
             Screen letters: {currentPage.letters.join(', ')}
           </div>
         {/if}
@@ -249,57 +300,56 @@
     background: white;
     padding: 16px;
     border-radius: 12px;
-    width: 80%;
-    max-width: 360px;
+    width: 90%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
   }
 
-  .numpad-display {
-    width: 100%;
-    margin: 8px 0;
-    padding: 12px;
-    font-size: 2rem;
-    text-align: center;
-    background: transparent;
-    border: none;
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  label {
+    font-size: 0.9rem;
     font-weight: 600;
   }
 
-  .numpad {
-    display: grid;
-    grid-template-rows: repeat(4, 1fr);
-    gap: 8px;
-    margin: 12px 0;
-  }
-
-  .numpad-row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-  }
-
-  .numpad-btn {
-    padding: 16px;
-    font-size: 1.5rem;
-    border: 2px solid #ddd;
-    background: white;
+  input[type='number'],
+  input[type='text'] {
+    padding: 10px;
+    border: 1px solid #ddd;
     border-radius: 8px;
+    font-size: 1rem;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .letter-input-row {
+    width: 100%;
+  }
+
+  .actions-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .action-btn {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    background: #f5f5f5;
     cursor: pointer;
     font-weight: 600;
-    transition: background 0.2s;
   }
 
-  .numpad-btn:active {
-    background: #e0e0e0;
-  }
-
-  .clear-btn {
-    background: #ffebee;
-    color: #c62828;
-  }
-
-  .backspace-btn {
-    background: #fff3e0;
-    color: #e65100;
+  .action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   .submit-btn {
@@ -317,6 +367,24 @@
 
   .submit-btn:active {
     background: #1565c0;
+  }
+
+  .error {
+    color: #c62828;
+    font-weight: 600;
+  }
+
+  ul {
+    max-height: 200px;
+    overflow-y: auto;
+    margin: 0;
+    padding-left: 16px;
+  }
+
+  .hint {
+    margin-top: 12px;
+    font-size: 0.85rem;
+    color: #666;
   }
 </style>
 

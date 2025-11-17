@@ -49,6 +49,7 @@
     <LetterScreen
       {namestop1}
       {letterPages}
+      {allNames}
       on:reset={resetAll}
     />
   {/if}

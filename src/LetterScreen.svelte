@@ -1,10 +1,11 @@
 <script lang="ts">
-  import { createEventDispatcher, onMount } from 'svelte';
+  import { createEventDispatcher } from 'svelte';
   import type { LetterPage } from './lib/letters';
   import { lettersInName } from './lib/names';
 
   export let namestop1: string[] = [];
   export let letterPages: LetterPage[] = [];
+  export let allNames: string[] = [];
 
   const dispatch = createEventDispatcher();
 
@@ -20,13 +21,11 @@
   let pagesLetterSets: { name: string; set: Set<string> }[] = [];
   let currentPage: LetterPage | null = null;
   let lastGeneratedLetters = '';
-
-  onMount(() => {
-    pagesLetterSets = namestop1.map(name => ({
-      name,
-      set: lettersInName(name)
-    }));
-  });
+  $: sourceNames = allNames.length ? allNames : namestop1;
+  $: pagesLetterSets = sourceNames.map(name => ({
+    name,
+    set: lettersInName(name)
+  }));
 
   function updateCurrentPageFromScroll() {
     if (!container) return;
@@ -162,9 +161,12 @@
 
 <div class="screen">
   <header>
-    <button on:click={reset}>R</button>
+    <div class="left-actions">
+      <button on:click={reset}>Reset</button>
+      <button on:click={openModal}>Filter</button>
+    </div>
     <div class="title">Letters ({namestop1.length})</div>
-    <button on:click={openModal}>Filter</button>
+    <div class="spacer"></div>
   </header>
   <div class="scroll" bind:this={container} on:scroll={onScroll}>
     {#each letterPages as page}
@@ -263,6 +265,15 @@
     justify-content: space-between;
     padding: 0 12px;
     border-bottom: 1px solid #ddd;
+  }
+
+  .left-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .spacer {
+    width: 48px;
   }
 
   .scroll {
